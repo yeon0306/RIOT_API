@@ -2,6 +2,7 @@ from typing import Union
 import requests
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import tensorflow as tf
 
 origins = [
     "*"
@@ -35,23 +36,52 @@ def read_root():
 def read_item(item_id: int, q: Union[str, None] = None):
     return {"item_id": item_id, "q": q}
 
-@app.get("/getSummonerInfo/{summonerName}")
-def get_summoner_info(summonerName: str):
-    r = requests.get("https://kr.api.riotgames.com/lol/summoner/v4/summoners/by-name/"+summonerName, headers=header)
-    return {"r": r.json()}
+@app.get("/getSummonerInfo/{summoonerName}")
+def get_summoner_info(summoonerName: str):
+    result = requests.get("https://kr.api.riotgames.com/lol/summoner/v4/summoners/by-name/"+summoonerName, headers=header)
+    if(result.status_code == 200):
+        js_result = result.json()
+        summonerInfo = {'name': js_result['name']
+                        ,'profileIconId': js_result['profileIconId']
+                        ,'id': js_result['id']
+                        , 'puuid': js_result['puuid']
+                        , 'summonerLevel': js_result['summonerLevel']}
+        return summonerInfo
 
-@app.get("/getLeagueInfo/{summonerId}")
-def get_league_info(summonerId: str):
-    r = requests.get("https://kr.api.riotgames.com/lol/league/v4/entries/by-summoner/"+summonerId, headers=header)
-    return r.json()
+@app.get("/getSummonerLeagueById/{summonerId}")
+def get_summoner_League(summonerId: str):
+    result = requests.get("https://kr.api.riotgames.com/lol/league/v4/entries/by-summoner/" + summonerId, headers=header)
+    if (result.status_code == 200):
+        js_result = result.json()
+        for league in js_result:
+            if(league['queueType'] == 'RANKED_SOLO_5x5'):
+                return league;
 
 @app.get("/getMatchList/{summonerPuuid}/{count}")
-def get_Match_List(summonerPuuid: str, count: int):
-    r = requests.get("https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/"
-                     +summonerPuuid+"/ids?start=0&count="+str(count), headers=header)
-    return r.json()
+def get_summoner_Matchs(summonerPuuid: str, count: int):
+    result = requests.get("https://asia.api.riotgames.com/lol/match/v5/matches/by-puuid/" + summonerPuuid
+                          + '/ids?queue=420&start=0&count=' + str(count), headers=header)
+    if (result.status_code == 200):
+        js_result = result.json()
+        return js_result
 
 @app.get("/getMatchInfo/{matchId}")
-def get_Match_info(matchId: str):
-    r = requests.get("https://asia.api.riotgames.com/lol/match/v5/matches/"+matchId, headers=header)
-    return r.json()
+def get_match_info(matchId: str):
+    result = requests.get("https://asia.api.riotgames.com/lol/match/v5/matches/" + matchId, headers=header)
+    if (result.status_code == 200):
+        js_result = result.json()
+        return js_result
+
+@app.get("/matchPredict/")
+def get_match_info(xpm: float, gpm: float, dpm: float, dpd: float):
+    print(xpm,gpm,dpm,dpd)
+    # 모델 로드
+    loaded_model = tf.keras.models.load_model('./my_model.h5')
+    # 입력 데이터 준비
+    input_data = [[xpm,gpm,dpm,dpd]]  # 예시 입력 데이터
+
+    # 예측 생성
+    predictions = loaded_model.predict(input_data)
+    prediction_values = predictions.tolist()
+    print(prediction_values[0])
+    return {'win': prediction_values[0][0]}
