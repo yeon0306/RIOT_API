@@ -1,1 +1,14 @@
-0825_top ~ spt .csv (5개)
+0825_adc.csv
+0825_game_data.pkl
+0825_jug.csv
+0825_mid.csv
+0825_spt.csv
+0825_top.csv
+0825all_data.pkl
+data_pro
+data_test
+lol_data_extract_to_pickle
+navie_eda
+navie_eda_test
+test.pkl
+top_data_only.pkl
